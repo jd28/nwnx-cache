@@ -1,9 +1,9 @@
 #include "core/ipc/Service.h"
-
-class Manager;
+#include "Manager.h"
 
 using ServiceCacheRegisterManager = Service<
-    Manager*
+    // Cache takes ownership.  You will need to pass an rvalue reference.
+    Manager
 >;
 
 using ServiceCacheGetManager = Service<

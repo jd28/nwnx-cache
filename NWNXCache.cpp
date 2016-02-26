@@ -5,16 +5,6 @@
 
 extern CNWNXCache cache;
 
-void RegisterManagerService(Manager* mgr) {
-    if(mgr) {
-        cache.RegisterManager(mgr);
-    }
-}
-
-void GetManagerService(const char* name, Manager** mgr) {
-    *mgr = cache.GetManager(name);
-}
-
 bool CNWNXCache::OnCreate(gline *config, const char *LogDir)
 {
     confKey = "CACHE";
@@ -27,8 +17,8 @@ bool CNWNXCache::OnCreate(gline *config, const char *LogDir)
     if (!CNWNXBase::OnCreate(config, log))
         return false;
 
-    ServiceRegister(ServiceCacheRegisterManager, [this](Manager* mgr) {
-            if(mgr) { RegisterManager(mgr); }
+    ServiceRegister(ServiceCacheRegisterManager, [this](Manager mgr) {
+        RegisterManager(std::move(mgr));
     });
 
     ServiceRegister(ServiceCacheGetManager, [this](const char* name, Manager** mgr) {
@@ -36,8 +26,7 @@ bool CNWNXCache::OnCreate(gline *config, const char *LogDir)
     });
 
     SignalConnect(CorePluginsLoaded, "CACHE", [this]() -> bool {
-                      static Manager manager = Manager::create<int>("TEST_MANAGER");
-                      RegisterManager(&manager);
+                      RegisterManager(Manager::create<int>("TEST_MANAGER"));
                       return false;
                   });
 
@@ -59,25 +48,25 @@ bool CNWNXCache::OnRelease()
     return true;
 }
 
-void CNWNXCache::RegisterManager(Manager *mgr)
+void CNWNXCache::RegisterManager(Manager mgr)
 {
-   auto it = std::find_if(managers.cbegin(), managers.cend(), [mgr](const Manager* m) {
-       return mgr->name() == m->name();
+   auto it = std::find_if(managers.cbegin(), managers.cend(), [&mgr](const Manager& m) {
+       return mgr.name() == m.name();
    });
 
    if(it == managers.end()) {
-       Log(0, "Registering Manager: %s\n", mgr->name().c_str());
-       managers.push_back(mgr);
+       Log(0, "Registering Manager: %s\n", mgr.name().c_str());
+       managers.emplace_back(std::move(mgr));
    }
 }
 
 Manager *CNWNXCache::GetManager(const std::string& mgr)
 {
-    auto it = std::find_if(managers.begin(), managers.end(), [&mgr](const Manager* m) {
-        return mgr == m->name();
+    auto it = std::find_if(managers.begin(), managers.end(), [&mgr](const Manager& m) {
+        return mgr == m.name();
     });
     if(it != managers.end()) {
-        return *it;
+        return &*it;
     }
     return nullptr;
 }

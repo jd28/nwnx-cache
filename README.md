@@ -1,13 +1,17 @@
-### nwnx-cache
+### nwnx_cache
 
 #### What is this?
 
 A plugin that can cache arbitrary data, filtered by object types.  Callbacks
 are also available to the registering plugin that can initialize/destruct cached
-data when an object is added/erased.
+data when an object is added/erased.  All managers registered with nwnx_cache are
+owned by it.
 
 Managers automatically hooks object created events.  Note these are currently only for
 CNWSObjects.
+
+The Manager class could be used internally by plugins however there is some overhead by doing
+so.
 
 #### Usage
 
@@ -22,7 +26,7 @@ Any plugin can use the ServiceCacheRegisterManager service to add a cache.
 static Manager MyIntManager = Manager::create<int>(
   "AnIntManger",
   // Only creatures and placeables allowed
-  Manager::ObjectMask::CREATURE | Manager::ObjectMask::PLACEABLE,
+  Manager::ObjectMask::CREATURE | Manager::ObjectMask::PLACEABLE,allowed
   [](const CNWSObject*, nwobjid) -> int {
     return 42; // Intialize every initial entry.
   });

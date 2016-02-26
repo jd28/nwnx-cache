@@ -5,10 +5,6 @@
 #include <functional>
 #include <google/dense_hash_map>
 
-// temporary
-#include "NWNXCache.h"
-extern CNWNXCache cache;
-
 template <typename T>
 static T DefaultAddCallback(const CNWSObject *, uint32_t) {
     return T();
@@ -81,14 +77,12 @@ private:
         virtual void Erase(const CNWSObject *obj) override {
             auto it = holder.find(obj->ObjectID);
             if(it != holder.end()) {
-                cache.Log(0, "Erasing Object: 0x%x\n", obj->ObjectID);
                 erase(obj, it->second);
                 holder.erase(it);
             }
         }
 
         virtual void Add(const CNWSObject* obj, uint32_t reqid) override {
-            cache.Log(0, "Adding Object: 0x%x\n", obj->ObjectID);
             holder.insert({obj->ObjectID, add(obj, reqid)});
         }
 
