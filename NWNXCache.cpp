@@ -1,7 +1,7 @@
 #include "NWNXCache.h"
 #include "pluginlink.h"
 #include "core/ipc/ipc.h"
-#include "Manager.h"
+#include "ObjectCache.h"
 
 extern CNWNXCache cache;
 
@@ -17,16 +17,16 @@ bool CNWNXCache::OnCreate(gline *config, const char *LogDir)
     if (!CNWNXBase::OnCreate(config, log))
         return false;
 
-    ServiceRegister(ServiceCacheRegisterManager, [this](Manager mgr) {
+    ServiceRegister(CacheRegisterObjectCache, [this](ObjectCache mgr) {
         RegisterManager(std::move(mgr));
     });
 
-    ServiceRegister(ServiceCacheGetManager, [this](const char* name, Manager** mgr) {
+    ServiceRegister(CacheGetObjectCache, [this](const char* name, ObjectCache** mgr) {
         *mgr = cache.GetManager(name);
     });
 
     SignalConnect(CorePluginsLoaded, "CACHE", [this]() -> bool {
-                      RegisterManager(Manager::create<int>("TEST_MANAGER"));
+                      RegisterManager(ObjectCache::create<int>("TEST_MANAGER"));
                       return false;
                   });
 
@@ -48,9 +48,9 @@ bool CNWNXCache::OnRelease()
     return true;
 }
 
-void CNWNXCache::RegisterManager(Manager mgr)
+void CNWNXCache::RegisterManager(ObjectCache mgr)
 {
-   auto it = std::find_if(managers.cbegin(), managers.cend(), [&mgr](const Manager& m) {
+   auto it = std::find_if(managers.cbegin(), managers.cend(), [&mgr](const ObjectCache& m) {
        return mgr.name() == m.name();
    });
 
@@ -60,9 +60,9 @@ void CNWNXCache::RegisterManager(Manager mgr)
    }
 }
 
-Manager *CNWNXCache::GetManager(const std::string& mgr)
+ObjectCache *CNWNXCache::GetManager(const std::string& mgr)
 {
-    auto it = std::find_if(managers.begin(), managers.end(), [&mgr](const Manager& m) {
+    auto it = std::find_if(managers.begin(), managers.end(), [&mgr](const ObjectCache& m) {
         return mgr == m.name();
     });
     if(it != managers.end()) {

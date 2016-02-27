@@ -3,6 +3,8 @@
 #include "api/CNWSObject.h"
 #include "include/nwn_const.h"
 #include "core/ipc/ipc.h"
+#include "core/pluginlink.h"
+
 #include <functional>
 #include <google/dense_hash_map>
 
@@ -53,7 +55,7 @@ inline ObjectMask operator|(ObjectMask lhs, ObjectMask rhs) {
     return static_cast<ObjectMask>(l | r);
 }
 
-class Manager {
+class ObjectCache {
 public:
     // Callback when an object is inserted into the hash.
     template <typename T>
@@ -143,7 +145,7 @@ private:
     ObjectMask object_type_mask = ObjectMask::ALL;
 
     template <typename T>
-    explicit Manager(T* dummy, std::string name, ObjectMask object_type_mask = ObjectMask::ALL,
+    explicit ObjectCache(T* dummy, std::string name, ObjectMask object_type_mask = ObjectMask::ALL,
                      AddCallback<T> add_callback = detail::DefaultAddCallback<T>,
                      EraseCallback<T> erase_callback = detail::DefaultEraseCallback<T>)
         : manager{new model<T>(add_callback, erase_callback)}
@@ -156,11 +158,11 @@ private:
 public:
 
     template<typename T>
-    static Manager create(std::string name, ObjectMask object_type_mask = ObjectMask::ALL,
+    static ObjectCache create(std::string name, ObjectMask object_type_mask = ObjectMask::ALL,
                    AddCallback<T> add_callback = detail::DefaultAddCallback<T>,
                    EraseCallback<T> erase_callback = detail::DefaultEraseCallback<T>) {
         T t;
-        return Manager(&t, name, object_type_mask, add_callback, erase_callback);
+        return ObjectCache(&t, name, object_type_mask, add_callback, erase_callback);
     }
 
     // Gets a cached element for an object.

@@ -7,24 +7,24 @@ are also available to the registering plugin that can initialize/destruct cached
 data when an object is added/erased.  All managers registered with nwnx_cache are
 owned by it.
 
-Managers automatically hooks object created events.  Note these are currently only for
+ObjectCaches automatically hooks object created events.  Note these are currently only for
 CNWSObjects.
 
-The Manager class could be used internally by plugins however there is some overhead by doing
+The ObjectCache class could be used internally by plugins however there is some overhead by doing
 so.
 
 #### Usage
 
-Any plugin can use the ServiceCacheRegisterManager service to add a cache.
+Any plugin can use the CacheRegisterObjectCache service to add a cache.
 
 ```c++
 #include "plugins/cache/pluginlink.h"
-#include "plugins/cache/Manager.h"
+#include "plugins/cache/ObjectCache.h"
 
 // Somewhere in the CorePluginsLoaded event.
 
-Manager MyIntManager = Manager::create<int>(
-  "AnIntManger",
+ObjectCache MyIntObjectCache = ObjectCache::create<int>(
+  "AnIntObjectCache",
   // Only creatures and placeables allowed
   ObjectMask::CREATURE | ObjectMask::PLACEABLE,
   [](const CNWSObject*, nwobjid) -> int {
@@ -32,23 +32,21 @@ Manager MyIntManager = Manager::create<int>(
   });
 
 // Let the world know.
-ServiceCall(ServiceCacheRegisterManager, std::move(MyIntManager));
+ServiceCall(CacheRegisterObjectCache, std::move(MyIntObjectCache));
 
 ```
 
-Any plugin can request a manager to read cached data using the ServiceGetRegisterManager.  Likewise edit as well.  Managers
-are currently owned by their creating plugins.  Note that references
-can be invalidated so do not cache values returned by Get.
+Any plugin can request a manager to read cached data using the CacheGetObjectCache.  Likewise edit as well.  Note that references can be invalidated so do not cache values returned by Get.
 
 ```c++
 #include "plugins/cache/pluginlink.h"
-#include "plugins/cache/Manger.h"
+#include "plugins/cache/ObjectCache.h"
 
-Manager *TheirIntManager = nullptr;
-ServiceCall(ServiceCacheGetManager, "AnIntManger", &TheirIntManager);
+ObjectCache *TheirIntObjectCache = nullptr;
+ServiceCall(CacheGetObjectCache, "AnIntObjectCache", &TheirIntObjectCache);
 
-if(TheirIntManager) {
-  int* SomeObjectsInt = manager->Get<int>(SomeObjectID);
+if(TheirIntObjectCache) {
+  int* SomeObjectsInt = TheirIntObjectCache->Get<int>(SomeObjectID);
   if(SomeObjectsInt) {
     // Go crazy using this int.
   }

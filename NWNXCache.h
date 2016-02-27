@@ -6,10 +6,10 @@
 #include "pluginlink.h"
 #include <vector>
 
-class Manager;
+class ObjectCache;
 
 class CNWNXCache : public CNWNXBase {
-    std::vector<Manager> managers;
+    std::vector<ObjectCache> managers;
 
 public:
     virtual bool OnCreate(gline *nwnxConfig, const char *LogFile) override;
@@ -17,6 +17,6 @@ public:
     virtual unsigned long OnRequestObject(char *gameObject, char *Request) override;
     virtual bool OnRelease() override;
 
-    void RegisterManager(Manager mgr);
-    Manager* GetManager(const std::string& mgr);
+    void RegisterManager(ObjectCache mgr);
+    ObjectCache* GetManager(const std::string& mgr);
 };
