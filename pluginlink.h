@@ -3,7 +3,7 @@
 
 using ServiceCacheRegisterManager = Service<
     // Cache takes ownership.  You will need to pass an rvalue reference.
-    Manager
+    Manager&&
 >;
 
 using ServiceCacheGetManager = Service<

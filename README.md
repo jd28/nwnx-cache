@@ -23,7 +23,7 @@ Any plugin can use the ServiceCacheRegisterManager service to add a cache.
 
 // Somewhere in the CorePluginsLoaded event.
 
-static Manager MyIntManager = Manager::create<int>(
+Manager MyIntManager = Manager::create<int>(
   "AnIntManger",
   // Only creatures and placeables allowed
   ObjectMask::CREATURE | ObjectMask::PLACEABLE,
@@ -32,7 +32,7 @@ static Manager MyIntManager = Manager::create<int>(
   });
 
 // Let the world know.
-ServiceCall(ServiceCacheRegisterManager, &MyIntManager);
+ServiceCall(ServiceCacheRegisterManager, std::move(MyIntManager));
 
 ```
 
