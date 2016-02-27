@@ -11,6 +11,6 @@ add_module(cache
     plugin-cache
     NWNXCache
     pluginlink.h
-    Manager
+    Manager.h
 )
 

@@ -26,7 +26,7 @@ Any plugin can use the ServiceCacheRegisterManager service to add a cache.
 static Manager MyIntManager = Manager::create<int>(
   "AnIntManger",
   // Only creatures and placeables allowed
-  Manager::ObjectMask::CREATURE | Manager::ObjectMask::PLACEABLE,allowed
+  ObjectMask::CREATURE | ObjectMask::PLACEABLE,
   [](const CNWSObject*, nwobjid) -> int {
     return 42; // Intialize every initial entry.
   });

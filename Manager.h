@@ -2,8 +2,11 @@
 
 #include "api/CNWSObject.h"
 #include "include/nwn_const.h"
+#include "core/ipc/ipc.h"
 #include <functional>
 #include <google/dense_hash_map>
+
+namespace detail {
 
 template <typename T>
 static T DefaultAddCallback(const CNWSObject *, uint32_t) {
@@ -15,6 +18,41 @@ static void DefaultEraseCallback(const CNWSObject*, T&) {
 
 }
 
+}
+
+enum class ObjectMask : size_t {
+    INVALID = 0,
+    GUI = 1 << OBJECT_TYPE_GUI,
+    TILE = 1 << OBJECT_TYPE_TILE,
+    MODULE = 1 << OBJECT_TYPE_MODULE,
+    AREA = 1 << OBJECT_TYPE_AREA,
+    CREATURE = 1 << OBJECT_TYPE_CREATURE,
+    ITEM = 1 << OBJECT_TYPE_ITEM,
+    TRIGGER = 1 << OBJECT_TYPE_TRIGGER,
+    PROJECTILE = 1 << OBJECT_TYPE_PROJECTILE,
+    PLACEABLE = 1 << OBJECT_TYPE_PLACEABLE,
+    DOOR = 1 << OBJECT_TYPE_DOOR,
+    AREA_OF_EFFECT = 1 << OBJECT_TYPE_AREA_OF_EFFECT,
+    WAYPOINT = 1 << OBJECT_TYPE_WAYPOINT,
+    ENCOUNTER = 1 << OBJECT_TYPE_ENCOUNTER,
+    STORE = 1 << OBJECT_TYPE_STORE,
+    PORTAL = 1 << OBJECT_TYPE_PORTAL,
+    SOUND = 1 << OBJECT_TYPE_SOUND,
+    ALL = 0xFFFFFFFF
+};
+
+inline ObjectMask operator&(ObjectMask lhs, ObjectMask rhs) {
+    size_t l = static_cast<size_t>(lhs);
+    size_t r = static_cast<size_t>(rhs);
+    return static_cast<ObjectMask>(l & r);
+}
+
+inline ObjectMask operator|(ObjectMask lhs, ObjectMask rhs) {
+    size_t l = static_cast<size_t>(lhs);
+    size_t r = static_cast<size_t>(rhs);
+    return static_cast<ObjectMask>(l | r);
+}
+
 class Manager {
 public:
     // Callback when an object is inserted into the hash.
@@ -24,27 +62,6 @@ public:
     // Callback when an object is removed from the hash.
     template <typename T>
     using EraseCallback = std::function<void(const CNWSObject *, T&)>;
-
-    enum class ObjectMask : size_t {
-        INVALID = 0,
-        GUI = 1 << OBJECT_TYPE_GUI,
-        TILE = 1 << OBJECT_TYPE_TILE,
-        MODULE = 1 << OBJECT_TYPE_MODULE,
-        AREA = 1 << OBJECT_TYPE_AREA,
-        CREATURE = 1 << OBJECT_TYPE_CREATURE,
-        ITEM = 1 << OBJECT_TYPE_ITEM,
-        TRIGGER = 1 << OBJECT_TYPE_TRIGGER,
-        PROJECTILE = 1 << OBJECT_TYPE_PROJECTILE,
-        PLACEABLE = 1 << OBJECT_TYPE_PLACEABLE,
-        DOOR = 1 << OBJECT_TYPE_DOOR,
-        AREA_OF_EFFECT = 1 << OBJECT_TYPE_AREA_OF_EFFECT,
-        WAYPOINT = 1 << OBJECT_TYPE_WAYPOINT,
-        ENCOUNTER = 1 << OBJECT_TYPE_ENCOUNTER,
-        STORE = 1 << OBJECT_TYPE_STORE,
-        PORTAL = 1 << OBJECT_TYPE_PORTAL,
-        SOUND = 1 << OBJECT_TYPE_SOUND,
-        ALL = 0xFFFFFFFF
-    };
 
 private:
     // Using type erasure... maybe not a great idea, but there is no
@@ -95,9 +112,31 @@ private:
         }
     };
 
-    void EventObjectCreated(const CNWSObject* obj, uint32_t reqid);
-    void EventObjectDestroyed(const CNWSObject* obj);
-    void HookEvents();
+    void EventObjectCreated(const CNWSObject* obj, uint32_t reqid) {
+        ObjectMask mask = static_cast<ObjectMask>(1 << obj->ObjectType);
+        if((object_type_mask & mask) != ObjectMask::INVALID) {
+            manager->Add(obj, reqid);
+        }
+    }
+
+    void EventObjectDestroyed(const CNWSObject* obj) {
+        ObjectMask mask = static_cast<ObjectMask>(1 << obj->ObjectType);
+        if((object_type_mask & mask) != ObjectMask::INVALID) {
+            manager->Erase(obj);
+        }
+    }
+
+    void HookEvents() {
+
+        bool h = SignalConnect(CoreCNWSObjectCreated, "CACHE", [this] (const void *object, nwobjid requestedId) -> bool {
+            EventObjectCreated((const CNWSObject*)object, requestedId);
+            return false;
+        });
+        h = SignalConnect(CoreCNWSObjectDestroyed, "CACHE", [this] (const void* object) -> bool {
+            EventObjectDestroyed((const CNWSObject*)object);
+            return false;
+        });
+    }
 
     std::unique_ptr<concept> manager;
     std::string name_;
@@ -105,8 +144,8 @@ private:
 
     template <typename T>
     explicit Manager(T* dummy, std::string name, ObjectMask object_type_mask = ObjectMask::ALL,
-                     AddCallback<T> add_callback = DefaultAddCallback<T>,
-                     EraseCallback<T> erase_callback = DefaultEraseCallback<T>)
+                     AddCallback<T> add_callback = detail::DefaultAddCallback<T>,
+                     EraseCallback<T> erase_callback = detail::DefaultEraseCallback<T>)
         : manager{new model<T>(add_callback, erase_callback)}
         , name_{std::move(name)}
         , object_type_mask{object_type_mask}
@@ -118,8 +157,8 @@ public:
 
     template<typename T>
     static Manager create(std::string name, ObjectMask object_type_mask = ObjectMask::ALL,
-                   AddCallback<T> add_callback = DefaultAddCallback<T>,
-                   EraseCallback<T> erase_callback = DefaultEraseCallback<T>) {
+                   AddCallback<T> add_callback = detail::DefaultAddCallback<T>,
+                   EraseCallback<T> erase_callback = detail::DefaultEraseCallback<T>) {
         T t;
         return Manager(&t, name, object_type_mask, add_callback, erase_callback);
     }
@@ -137,15 +176,3 @@ public:
 
     const std::string name() const { return name_; }
 };
-
-inline size_t operator&(Manager::ObjectMask lhs, Manager::ObjectMask rhs) {
-    size_t l = static_cast<size_t>(lhs);
-    size_t r = static_cast<size_t>(rhs);
-    return l & r;
-}
-
-inline Manager::ObjectMask operator|(Manager::ObjectMask lhs, Manager::ObjectMask rhs) {
-    size_t l = static_cast<size_t>(lhs);
-    size_t r = static_cast<size_t>(rhs);
-    return static_cast<Manager::ObjectMask>(l | r);
-}
